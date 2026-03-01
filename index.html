@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plataforma CUBI-K IA</title>
+    
+    <!-- Tailwind CSS para Estilos -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- FontAwesome para Iconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Vue 3 para la Lógica Interactiva -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+
+    <style>
+        /* Estilos base y ocultar barra de desplazamiento en carruseles */
+        body { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #141414; color: white; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        
+        /* Efectos de transición suaves */
+        .fade-enter-active, .fade-leave-active { transition: opacity 0.3s ease; }
+        .fade-enter-from, .fade-leave-to { opacity: 0; }
+        
+        .modal-enter-active, .modal-leave-active { transition: all 0.3s ease; }
+        .modal-enter-from, .modal-leave-to { opacity: 0; transform: scale(0.95); }
+    </style>
+</head>
+<body class="overflow-x-hidden selection:bg-cyan-500 selection:text-white">
+
+<div id="app">
+    <!-- NAVEGACIÓN -->
+    <nav class="fixed w-full z-50 transition-all duration-300 bg-gradient-to-b from-black/90 to-transparent px-4 py-4 md:px-12 flex justify-between items-center backdrop-blur-sm">
+        <div class="flex items-center gap-4">
+            <h1 class="text-2xl md:text-3xl font-extrabold tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600">
+                CUBI-K <span class="text-white">IA</span>
+            </h1>
+        </div>
+        <div class="flex items-center gap-2 md:gap-4">
+            <!-- Botón de Configuración de API Key -->
+            <button @click="showApiModal = true" 
+                    class="px-3 py-2 rounded-md text-sm font-semibold transition-all bg-gray-800 hover:bg-gray-700 border border-gray-600 text-gray-300 flex items-center gap-2">
+                <i class="fa-solid fa-key" :class="apiKey ? 'text-green-400' : 'text-yellow-400'"></i>
+                <span class="hidden md:inline">{{ apiKey ? 'API Key Guardada' : 'Configurar API' }}</span>
+            </button>
+            <!-- Botón Modo Admin -->
+            <button @click="toggleEditMode" 
+                    :class="['px-4 py-2 rounded-md text-sm font-semibold transition-all', editMode ? 'bg-red-600 hover:bg-red-700' : 'bg-white/20 hover:bg-white/30']">
+                <i :class="editMode ? 'fa-solid fa-xmark mr-2' : 'fa-solid fa-pen mr-2'"></i>
+                {{ editMode ? 'Salir de Edición' : 'Modo Admin' }}
+            </button>
+        </div>
+    </nav>
+
+    <!-- HERO SECTION -->
+    <div class="relative w-full h-[70vh] md:h-[85vh] flex items-center justify-center">
+        <div class="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1639322537228-f710d846310a?auto=format&fit=crop&w=1920&q=80')] bg-cover bg-center opacity-30"></div>
+        <div class="absolute inset-0 bg-gradient-to-t from-[#141414] via-[#141414]/60 to-transparent"></div>
+        <div class="absolute inset-0 bg-gradient-to-r from-[#141414] via-transparent to-transparent"></div>
+        
+        <div class="relative z-10 px-4 md:px-12 w-full max-w-7xl mx-auto flex flex-col items-start gap-4">
+            <div v-if="editMode" @click="openModal('editGlobal')" class="flex gap-2 items-center cursor-pointer hover:bg-white/10 p-2 rounded w-full">
+                <h2 class="text-4xl md:text-6xl font-bold max-w-3xl leading-tight border-b border-dashed border-gray-400">{{ data.programTitle }}</h2>
+                <i class="fa-solid fa-pen text-cyan-400 text-2xl"></i>
+            </div>
+            <h2 v-else class="text-4xl md:text-6xl font-bold max-w-3xl leading-tight drop-shadow-2xl">
+                {{ data.programTitle }}
+            </h2>
+            
+            <p class="text-lg md:text-xl text-gray-300 max-w-2xl text-shadow-md border-l-4 border-cyan-500 pl-4 py-1 italic">
+                "{{ data.vision }}"
+            </p>
+            <p class="text-sm text-gray-400 font-mono tracking-widest uppercase mt-4">
+                Alianza CUBI-K & AIWIS
+            </p>
+            
+            <div class="flex gap-4 mt-6">
+                <button class="flex items-center gap-2 bg-white text-black px-6 py-3 rounded-md font-bold hover:bg-gray-200 transition-colors">
+                    <i class="fa-solid fa-play"></i> Empezar Fase 1
+                </button>
+                <button class="flex items-center gap-2 bg-gray-500/50 text-white px-6 py-3 rounded-md font-bold hover:bg-gray-500/70 transition-colors backdrop-blur-md">
+                    <i class="fa-solid fa-circle-info"></i> Más Información
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CONTENIDO PRINCIPAL - MÓDULOS -->
+    <div class="relative z-20 pb-20 -mt-20 md:-mt-32 px-4 md:px-12 w-full max-w-[1600px] mx-auto space-y-12">
+        
+        <!-- Carruseles de Módulos -->
+        <div v-for="(module, mIndex) in data.modules" :key="module.id" class="relative group/module">
+            <div class="flex items-center gap-3 mb-4">
+                <div v-if="editMode" class="flex gap-3 items-center w-full">
+                    <h3 class="text-xl md:text-2xl font-bold border-b border-dashed border-gray-500 cursor-pointer hover:text-cyan-400" @click="openModal('editModule', { mIndex, title: module.title })">
+                        {{ module.title }} <i class="fa-solid fa-pen text-sm ml-2"></i>
+                    </h3>
+                    <button @click="deleteModule(mIndex)" class="text-red-500 hover:text-red-400 ml-auto mr-4"><i class="fa-solid fa-trash"></i></button>
+                </div>
+                <h3 v-else class="text-xl md:text-2xl font-bold">{{ module.title }}</h3>
+            </div>
+
+            <div class="relative">
+                <button @click="scrollCarousel(mIndex, -1)" class="absolute -left-4 md:-left-12 top-0 bottom-0 z-40 w-12 flex items-center justify-center bg-black/40 opacity-0 group-hover/module:opacity-100 hover:bg-black/80 transition-all text-2xl">
+                    <i class="fa-solid fa-chevron-left"></i>
+                </button>
+
+                <div :id="'carousel-' + mIndex" class="flex gap-4 overflow-x-auto snap-x snap-mandatory hide-scrollbar pb-8 pt-4 px-2 -mx-2">
+                    
+                    <!-- Tarjetas de Clases -->
+                    <div v-for="(cls, cIndex) in module.classes" :key="cls.id" class="min-w-[280px] md:min-w-[320px] aspect-video snap-center relative rounded-md overflow-hidden group cursor-pointer shrink-0 bg-gray-800 shadow-lg transform transition-transform duration-300 hover:scale-105 hover:z-30">
+                        <img :src="cls.image" :alt="cls.title" class="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity duration-300" onerror="this.src='https://images.unsplash.com/photo-1620712943543-bcc4688e7485?auto=format&fit=crop&w=600&q=80'" />
+                        <div class="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent"></div>
+                        
+                        <div v-if="editMode" class="absolute top-2 right-2 flex gap-2 z-20">
+                            <button @click.stop="openModal('editClass', { mIndex, cIndex, cls })" class="bg-black/70 w-8 h-8 rounded-full text-white hover:text-cyan-400 backdrop-blur-sm"><i class="fa-solid fa-pen"></i></button>
+                            <button @click.stop="deleteClass(mIndex, cIndex)" class="bg-black/70 w-8 h-8 rounded-full text-white hover:text-red-500 backdrop-blur-sm"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+
+                        <div class="absolute bottom-0 left-0 right-0 p-4 transition-transform duration-300 transform translate-y-2 group-hover:translate-y-0">
+                            <span class="bg-cyan-600/80 text-white text-xs font-bold px-2 py-1 rounded shadow-sm inline-block mb-2">{{ cls.code }}</span>
+                            <h4 class="font-bold text-white text-lg leading-tight drop-shadow-md">{{ cls.title }}</h4>
+                            <p class="text-gray-300 text-xs mt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 clamp-2">{{ cls.desc }}</p>
+                        </div>
+                    </div>
+
+                    <!-- Botón Añadir Clase -->
+                    <div v-if="editMode" @click="openModal('addClass', { mIndex })" class="min-w-[280px] md:min-w-[320px] aspect-video snap-center flex flex-col items-center justify-center border-2 border-dashed border-gray-700 bg-gray-800/50 rounded-md cursor-pointer hover:bg-gray-800 hover:border-cyan-500 transition-all text-gray-400 hover:text-cyan-400 shrink-0">
+                        <i class="fa-solid fa-plus text-3xl mb-2"></i>
+                        <span class="font-bold">Añadir Clase</span>
+                    </div>
+
+                </div>
+
+                <button @click="scrollCarousel(mIndex, 1)" class="absolute -right-4 md:-right-12 top-0 bottom-0 z-40 w-12 flex items-center justify-center bg-black/40 opacity-0 group-hover/module:opacity-100 hover:bg-black/80 transition-all text-2xl">
+                    <i class="fa-solid fa-chevron-right"></i>
+                </button>
+            </div>
+        </div>
+
+        <button v-if="editMode" @click="openModal('addModule')" class="w-full py-6 border-2 border-dashed border-gray-600 text-gray-400 hover:text-white hover:border-white rounded-xl flex items-center justify-center gap-2 transition-all">
+            <i class="fa-solid fa-plus text-xl"></i> Agregar Nuevo Módulo
+        </button>
+
+        <!-- WORKSHOPS Y PROYECTOS -->
+        <div class="mt-16 bg-[#181818] p-6 md:p-10 rounded-2xl border border-gray-800 shadow-2xl">
+            <div class="flex items-center justify-between mb-8">
+                <h3 class="text-2xl font-bold text-cyan-400 flex items-center gap-3">
+                    <i class="fa-regular fa-circle-check"></i> Talleres y Proyectos (Aprender Haciendo)
+                </h3>
+                <button v-if="editMode" @click="openModal('addWorkshop')" class="bg-cyan-600/20 text-cyan-400 w-10 h-10 rounded hover:bg-cyan-600/40 transition flex items-center justify-center">
+                    <i class="fa-solid fa-plus"></i>
+                </button>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div v-for="(ws, wIndex) in data.workshops" :key="ws.id" class="bg-[#242424] p-6 rounded-xl relative group border border-transparent hover:border-gray-600 transition-all">
+                    <div v-if="editMode" class="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button @click="openModal('editWorkshop', { wIndex, ws })" class="bg-black/50 w-8 h-8 rounded-full hover:text-cyan-400"><i class="fa-solid fa-pen text-xs"></i></button>
+                        <button @click="deleteWorkshop(wIndex)" class="bg-black/50 w-8 h-8 rounded-full hover:text-red-500"><i class="fa-solid fa-trash text-xs"></i></button>
+                    </div>
+                    <div class="text-cyan-500 font-mono text-sm mb-2">{{ ws.code }}</div>
+                    <h4 class="text-xl font-bold text-white mb-2">{{ ws.title }}</h4>
+                    <p class="text-gray-400 text-sm">{{ ws.desc }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAREAS ENTREGADAS -->
+        <div class="mt-12 bg-gradient-to-br from-gray-900 to-black p-6 md:p-10 rounded-2xl border border-gray-800">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-2xl font-bold text-purple-400 flex items-center gap-3">
+                    <i class="fa-solid fa-floppy-disk"></i> Entregas de Alumnos (Caché Local)
+                </h3>
+                <button v-if="editMode" @click="openModal('addTask')" class="bg-purple-600/20 text-purple-400 px-4 py-2 rounded text-sm font-bold hover:bg-purple-600/40 transition">
+                    + Nueva Entrega
+                </button>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm text-gray-400">
+                    <thead class="bg-gray-800/50 text-gray-200 uppercase font-bold">
+                        <tr>
+                            <th class="px-4 py-3 rounded-tl-lg">Alumno</th>
+                            <th class="px-4 py-3">Clase/Taller</th>
+                            <th class="px-4 py-3">Enlace Proyecto</th>
+                            <th class="px-4 py-3">Nota (1-7)</th>
+                            <th class="px-4 py-3">Estado</th>
+                            <th v-if="editMode" class="px-4 py-3 rounded-tr-lg">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-if="data.studentTasks.length === 0">
+                            <td colspan="6" class="text-center py-6 text-gray-600">No hay tareas entregadas.</td>
+                        </tr>
+                        <tr v-for="(task, idx) in data.studentTasks" :key="task.id" class="border-b border-gray-800 hover:bg-gray-800/30">
+                            <td class="px-4 py-3 font-semibold text-white">{{ task.studentName }}</td>
+                            <td class="px-4 py-3 font-mono">{{ task.taskCode }}</td>
+                            <td class="px-4 py-3">
+                                <a :href="task.link" target="_blank" class="text-blue-400 hover:underline flex items-center gap-1"><i class="fa-solid fa-link text-xs"></i> Ver Repo</a>
+                            </td>
+                            <td class="px-4 py-3 font-bold text-yellow-400">{{ task.grade }}</td>
+                            <td class="px-4 py-3"><span class="bg-green-500/20 text-green-400 px-2 py-1 rounded text-xs">{{ task.status }}</span></td>
+                            <td v-if="editMode" class="px-4 py-3">
+                                <button @click="deleteTask(idx)" class="text-red-500 hover:text-red-400"><i class="fa-solid fa-trash"></i></button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="text-center py-16 px-4 text-gray-500 bg-black/50 border-t border-gray-800 mt-12">
+        <p class="text-xl italic max-w-2xl mx-auto text-gray-300">
+            "La revolución digital sin riesgos, es evolución..."
+        </p>
+        <p class="mt-4 font-bold tracking-wide">— Armin Salazar, CEO AIWIS IA & TI.</p>
+        <p class="mt-8 text-xs font-mono">Plataforma CUBI-K IA v1.1 • Despliegue Estático (Vercel Ready)</p>
+    </footer>
+
+    <!-- BOTÓN FLOTANTE NOTEBOOK LM / GEMINI -->
+    <button @click="isBotOpen = true" class="fixed bottom-6 right-6 md:bottom-10 md:right-10 w-16 h-16 bg-gradient-to-r from-blue-600 to-cyan-500 rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(6,182,212,0.5)] hover:scale-110 hover:rotate-12 transition-transform z-50 group">
+        <i class="fa-solid fa-robot text-white text-2xl"></i>
+        <span class="absolute right-20 bg-gray-800 text-white text-sm px-3 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+            Asistente IA Malla
+        </span>
+    </button>
+
+    <!-- MODAL DE CONFIGURACIÓN API KEY (SEGURIDAD PARA GITHUB) -->
+    <Transition name="fade">
+        <div v-if="showApiModal" class="fixed inset-0 bg-black/90 z-[300] flex items-center justify-center p-4 backdrop-blur-md">
+            <Transition name="modal" appear>
+                <div class="bg-[#181818] border border-gray-700 w-full max-w-md rounded-xl shadow-2xl p-6 relative">
+                    <button @click="showApiModal = false" class="absolute top-4 right-4 text-gray-400 hover:text-white text-xl">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                    
+                    <div class="mb-6 border-b border-gray-800 pb-4 text-center">
+                        <i class="fa-solid fa-shield-halved text-cyan-400 text-4xl mb-3"></i>
+                        <h2 class="text-2xl font-bold text-white">Configurar Gemini API</h2>
+                        <p class="text-sm text-gray-400 mt-2">Para mantener tu repositorio de GitHub seguro, ingresa tu API Key aquí. Se guardará localmente en tu navegador.</p>
+                    </div>
+
+                    <form @submit.prevent="saveApiKey" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-400 mb-1">API Key (Plan Pro / Flash)</label>
+                            <input v-model="tempApiKey" type="password" placeholder="AIzaSy..." class="w-full bg-gray-900 border border-gray-700 rounded p-3 text-white focus:border-cyan-500 outline-none font-mono" required />
+                        </div>
+                        
+                        <div class="flex justify-between items-center mt-6 pt-4 border-t border-gray-800">
+                            <button type="button" @click="clearApiKey" class="text-xs text-red-500 hover:text-red-400 transition underline">
+                                Borrar Key Actual
+                            </button>
+                            <button type="submit" class="px-6 py-2 rounded font-bold bg-cyan-600 hover:bg-cyan-500 text-white transition flex items-center gap-2">
+                                <i class="fa-solid fa-lock"></i> Guardar Key
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </Transition>
+        </div>
+    </Transition>
+
+    <!-- MODAL DEL ASISTENTE (NATIVO GEMINI + NOTEBOOK LM) -->
+    <Transition name="fade">
+        <div v-if="isBotOpen" class="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
+            <Transition name="modal" appear>
+                <div class="bg-[#181818] w-full max-w-5xl h-[85vh] rounded-2xl overflow-hidden flex flex-col border border-gray-700 shadow-2xl relative">
+                    <!-- Chat Header -->
+                    <div class="flex justify-between items-center p-4 bg-gray-900 border-b border-gray-800">
+                        <div class="flex items-center gap-3">
+                            <i class="fa-solid fa-robot text-cyan-400 text-xl"></i>
+                            <h3 class="font-bold text-lg">Asistente Virtual IA</h3>
+                        </div>
+                        <div class="flex gap-4">
+                            <a href="https://notebooklm.google.com/notebook/8df184e7-da40-4ca1-bcf2-19985380e3e7/preview" target="_blank" class="text-xs bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 rounded-md transition-colors flex items-center gap-2 hidden md:flex">
+                                Abrir NotebookLM <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                            </a>
+                            <button @click="isBotOpen = false" class="text-gray-400 hover:text-white bg-white/10 w-8 h-8 rounded-full flex items-center justify-center">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Chat Body -->
+                    <div class="flex-1 bg-gray-900 relative flex flex-col overflow-hidden">
+                        <div class="flex-1 overflow-y-auto p-4 space-y-4 scroll-smooth" id="chat-container">
+                            <div v-for="(msg, i) in chatMessages" :key="i" :class="['flex', msg.role === 'user' ? 'justify-end' : 'justify-start']">
+                                <div :class="['max-w-[85%] rounded-2xl px-4 py-3 shadow-sm', msg.role === 'user' ? 'bg-cyan-600 text-white rounded-br-none' : 'bg-gray-800 text-gray-200 border border-gray-700 rounded-bl-none']">
+                                    <p class="text-sm whitespace-pre-wrap leading-relaxed">{{ msg.text }}</p>
+                                </div>
+                            </div>
+                            <div v-if="isChatLoading" class="flex justify-start">
+                                <div class="bg-gray-800 text-gray-200 border border-gray-700 px-4 py-3 rounded-2xl rounded-bl-none flex items-center gap-3">
+                                    <i class="fa-solid fa-circle-notch fa-spin text-cyan-400"></i>
+                                    <span class="text-sm text-gray-400 font-medium">Analizando consulta...</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Chat Input -->
+                        <div class="p-4 bg-[#181818] border-t border-gray-800">
+                            <form @submit.prevent="handleSendMessage" class="flex gap-3">
+                                <input v-model="chatInput" type="text" placeholder="Pregúntame sobre el programa CUBI-K..." class="flex-1 bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all placeholder-gray-500" :disabled="isChatLoading" />
+                                <button type="submit" :disabled="isChatLoading || !chatInput.trim()" class="bg-cyan-600 hover:bg-cyan-500 disabled:bg-gray-800 disabled:text-gray-600 disabled:border disabled:border-gray-700 disabled:cursor-not-allowed text-white px-5 py-3 rounded-xl transition-all flex items-center justify-center shadow-lg">
+                                    <i class="fa-solid fa-paper-plane"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </Transition>
+        </div>
+    </Transition>
+
+    <!-- CRUD MODAL DINÁMICO -->
+    <Transition name="fade">
+        <div v-if="modal.isOpen" class="fixed inset-0 bg-black/90 z-[200] flex items-center justify-center p-4 backdrop-blur-md">
+            <Transition name="modal" appear>
+                <div class="bg-[#181818] border border-gray-700 w-full max-w-lg rounded-xl shadow-2xl p-6 relative max-h-[90vh] overflow-y-auto">
+                    <button @click="closeModal" class="absolute top-4 right-4 text-gray-400 hover:text-white text-xl">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                    
+                    <div class="flex justify-between items-center mb-6 border-b border-gray-800 pb-2">
+                        <h2 class="text-2xl font-bold text-cyan-400">
+                            {{ modal.type.includes('edit') ? 'Editar Contenido' : 'Agregar Contenido' }}
+                        </h2>
+                        
+                        <!-- Botón Sugerir con IA -->
+                        <button v-if="modal.type === 'addClass' || modal.type === 'addWorkshop'" type="button" @click="handleAIGenerate" :disabled="isGenerating" class="bg-cyan-600/20 text-cyan-400 hover:bg-cyan-600/40 px-3 py-1.5 rounded flex items-center gap-2 text-sm font-bold transition-colors disabled:opacity-50 border border-cyan-800/50">
+                            <i v-if="isGenerating" class="fa-solid fa-circle-notch fa-spin"></i>
+                            <i v-else class="fa-solid fa-wand-magic-sparkles"></i>
+                            Sugerir con IA
+                        </button>
+                    </div>
+
+                    <form @submit.prevent="saveModalData" class="space-y-4">
+                        
+                        <!-- Campos para Título General / Visión -->
+                        <div v-if="formData.programTitle !== undefined">
+                            <label class="block text-xs font-bold text-gray-400 mb-1">Título del Programa</label>
+                            <input v-model="formData.programTitle" class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white focus:border-cyan-500 outline-none" required />
+                            
+                            <label class="block text-xs font-bold text-gray-400 mb-1 mt-4">Visión Estratégica</label>
+                            <textarea v-model="formData.vision" class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white focus:border-cyan-500 outline-none h-24" required></textarea>
+                        </div>
+
+                        <!-- Campo para Título genérico (Módulo) -->
+                        <div v-if="formData.title !== undefined && modal.type.includes('Module')">
+                            <label class="block text-xs font-bold text-gray-400 mb-1">Título del Módulo</label>
+                            <input v-model="formData.title" class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white focus:border-cyan-500 outline-none" required />
+                        </div>
+
+                        <!-- Campos para Clases / Workshops -->
+                        <template v-if="formData.code !== undefined && !modal.type.includes('Task')">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-400 mb-1">Código (Ej. CLS-001)</label>
+                                <input v-model="formData.code" class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white focus:border-cyan-500 outline-none" required />
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-400 mb-1">Título</label>
+                                <input v-model="formData.title" class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white focus:border-cyan-500 outline-none" required />
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-400 mb-1">Descripción</label>
+                                <textarea v-model="formData.desc" class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white focus:border-cyan-500 outline-none h-20" required></textarea>
+                            </div>
+                            <div v-if="formData.image !== undefined">
+                                <label class="block text-xs font-bold text-gray-400 mb-1">URL de Imagen</label>
+                                <input v-model="formData.image" class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white focus:border-cyan-500 outline-none" required />
+                            </div>
+                        </template>
+
+                        <!-- Campos para Tareas -->
+                        <template v-if="modal.type === 'addTask'">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-400 mb-1">Nombre Alumno</label>
+                                <input v-model="formData.studentName" class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white focus:border-cyan-500 outline-none" required />
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-400 mb-1">ID Clase</label>
+                                    <input v-model="formData.taskCode" class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white focus:border-cyan-500 outline-none" required />
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-400 mb-1">Nota (1-7)</label>
+                                    <input v-model="formData.grade" class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white focus:border-cyan-500 outline-none" required />
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-400 mb-1">Enlace del Proyecto</label>
+                                <input v-model="formData.link" type="url" class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white focus:border-cyan-500 outline-none" required />
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-400 mb-1">Estado</label>
+                                <input v-model="formData.status" class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white focus:border-cyan-500 outline-none" required />
+                            </div>
+                        </template>
+
+                        <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-800">
+                            <button type="button" @click="closeModal" class="px-4 py-2 rounded font-bold text-gray-400 hover:bg-gray-800 transition">Cancelar</button>
+                            <button type="submit" class="px-6 py-2 rounded font-bold bg-cyan-600 hover:bg-cyan-500 text-white transition flex items-center gap-2">
+                                <i class="fa-solid fa-floppy-disk"></i> Guardar
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </Transition>
+        </div>
+    </Transition>
+
+</div>
+
+<script>
+// --- CORE API DE GEMINI (Ahora requiere pasar la key como parámetro) ---
+const callGeminiAPI = async (apiKey, prompt, systemInstruction = "", history = [], isJson = false) => {
+    if (!apiKey) throw new Error("API Key no configurada");
+    
+    // NOTA: Se actualizó el modelo a la versión productiva recomendada pro flash
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    
+    // Formatear historial para la API
+    const contents = history.map(msg => ({
+        role: msg.role, 
+        parts: [{ text: msg.text }]
+    }));
+    contents.push({ role: "user", parts: [{ text: prompt }] });
+    
+    const payload = { contents };
+    
+    if (systemInstruction) {
+        payload.systemInstruction = { parts: [{ text: systemInstruction }] };
+    }
+    
+    if (isJson) {
+        payload.generationConfig = { responseMimeType: "application/json" };
+    }
+
+    // Exponential backoff retry logic
+    for (let attempt = 0; attempt < 5; attempt++) {
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (!response.ok) throw new Error(`API Error: ${response.status}`);
+            const data = await response.json();
+            return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+        } catch (error) {
+            if (attempt === 4) throw error;
+            await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 1000));
+        }
+    }
+};
+
+// Datos por defecto basados en la Malla Curricular Original
+const initialData = {
+    programTitle: "Programa de Adopción de IA Corporativa - CUBI-K",
+    vision: "La integración de la IA no es una actualización, es una reingeniería profunda del desarrollo de sistemas críticos.",
+    modules: [
+        {
+            id: 'm1', title: 'Módulo 1: Fundamentos y Operatividad con LLMs',
+            classes: [
+                { id: 'c1', code: 'CLS-001', title: 'Introducción a la IA Corporativa', desc: 'Análisis de tipos de IA (ANI vs AGI), IA Predictiva vs Generativa y su impacto.', image: 'https://images.unsplash.com/photo-1620712943543-bcc4688e7485?auto=format&fit=crop&w=600&q=80' },
+                { id: 'c2', code: 'CLS-002', title: 'Dominando LLMs Modernos', desc: 'Evaluación técnica comparativa de ChatGPT, Claude y Gemini.', image: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&w=600&q=80' },
+                { id: 'c3', code: 'CLS-003', title: 'Ingeniería de Prompts', desc: 'Dominio de Chain-of-Thought, Few-Shot y Role Prompting aplicado al sector financiero.', image: 'https://images.unsplash.com/photo-1684369175836-92386da2436c?auto=format&fit=crop&w=600&q=80' },
+                { id: 'c4', code: 'CLS-004', title: 'Programa con IA desde Cero', desc: 'Uso de asistentes de código (Copilot, Cursor) para generación y modernización.', image: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=600&q=80' },
+            ]
+        },
+        {
+            id: 'm2', title: 'Módulo 2: Arquitecturas y Automatización',
+            classes: [
+                { id: 'c5', code: 'CLS-006', title: 'Bases Vectoriales y RAG', desc: 'Implementación de RAG para documentación técnica privada y segura.', image: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&w=600&q=80' },
+                { id: 'c6', code: 'CLS-007', title: 'Low-Code y Orquestación', desc: 'Flujos automatizados usando Make, n8n, Zapier y LangChain.', image: 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=600&q=80' },
+                { id: 'c7', code: 'CLS-008', title: 'Agentes IA y Asistentes', desc: 'Diseño de modelos proactivos para decisiones multi-paso autónomas.', image: 'https://images.unsplash.com/photo-1620825937374-87fc7d62828d?auto=format&fit=crop&w=600&q=80' },
+                { id: 'c8', code: 'CLS-009', title: 'Gemas de Gemini', desc: 'Configuración de asistentes personalizados y metodologías de problemas complejos.', image: 'https://images.unsplash.com/photo-1614729939124-032f0b56c9ce?auto=format&fit=crop&w=600&q=80' },
+            ]
+        },
+        {
+            id: 'm3', title: 'Módulo 3: Integración Cloud y Escalabilidad',
+            classes: [
+                { id: 'c9', code: 'CLS-011', title: 'Integración de APIs', desc: 'Conexión técnica entre sistemas Legacy y modelos de última generación.', image: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=600&q=80' },
+                { id: 'c10', code: 'CLS-012', title: 'Escalabilidad en la Empresa', desc: 'Estrategias para el despliegue masivo de IA en la organización.', image: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=600&q=80' },
+                { id: 'c11', code: 'CLS-013', title: 'Arquitecturas CLOUD IA', desc: 'Diseño de infraestructura robusta y despliegue en alta disponibilidad.', image: 'https://images.unsplash.com/photo-1544197150-b99a580bb7a8?auto=format&fit=crop&w=600&q=80' },
+                { id: 'c12', code: 'CLS-014', title: 'Proyecto Final: Preparación', desc: 'Definición del alcance técnico y arquitectura del desafío CUBI-K.', image: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=600&q=80' },
+            ]
+        },
+        {
+            id: 'm4', title: 'Módulo 4: Especialización, Ética y Seguridad',
+            classes: [
+                { id: 'c13', code: 'CLS-016', title: 'Casos Bancarios Avanzados', desc: 'Detección de fraude, evaluación de riesgo y atención automatizada.', image: 'https://images.unsplash.com/photo-1501167733088-4c4652e25916?auto=format&fit=crop&w=600&q=80' },
+                { id: 'c14', code: 'CLS-017', title: 'IA Generativa Analítica', desc: 'Interpretación de volúmenes de datos, SQL automático y dashboards.', image: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=600&q=80' },
+                { id: 'c15', code: 'CLS-018', title: 'Compliance en IA', desc: 'Navegación del marco CMF, Ley de Privacidad y mitigación de sesgos.', image: 'https://images.unsplash.com/photo-1563013544-824ae1b704d3?auto=format&fit=crop&w=600&q=80' },
+            ]
+        }
+    ],
+    workshops: [
+        { id: 'w1', code: 'CLS-005', title: 'Miniproyecto A', desc: 'Aplicación de ingeniería de prompts y operatividad de IA en tareas diarias.' },
+        { id: 'w2', code: 'CLS-010', title: 'Miniproyecto B', desc: 'Integración de flujos automatizados y agentes inteligentes funcionales.' },
+        { id: 'w3', code: 'CLS-015', title: 'Proyecto Final C', desc: 'Diseño conceptual y arquitectónico de una solución IA para CUBI-K.' }
+    ],
+    studentTasks: [
+        { id: 't1', studentName: 'Juan Pérez', taskCode: 'CLS-005', link: 'https://github.com', grade: '6.5', status: 'Evaluado' }
+    ]
+};
+
+// Inicialización de la App Vue 3
+const { createApp } = Vue;
+
+createApp({
+    data() {
+        return {
+            data: initialData,
+            editMode: false,
+            
+            // Sistema de API Key Seguro Local
+            apiKey: '',
+            tempApiKey: '',
+            showApiModal: false,
+
+            // ChatBot State
+            isBotOpen: false,
+            chatMessages: [
+                { role: 'model', text: '¡Hola! Soy el asistente IA de CUBI-K. Para poder ayudarte necesitas configurar tu API Key de Gemini en el botón "Configurar API" arriba.' }
+            ],
+            chatInput: '',
+            isChatLoading: false,
+            isGenerating: false,
+            
+            // Estado del Modal CRUD
+            modal: { isOpen: false, type: '', payload: null },
+            formData: {}
+        }
+    },
+    mounted() {
+        // Cargar Datos Generales
+        const savedData = localStorage.getItem('cubik_ia_data_v2');
+        if (savedData) {
+            try { this.data = JSON.parse(savedData); } catch (e) { console.error("Error al cargar datos", e); }
+        }
+
+        // Cargar API Key
+        const savedKey = localStorage.getItem('cubik_gemini_key');
+        if (savedKey) {
+            this.apiKey = savedKey;
+            this.tempApiKey = savedKey;
+            this.chatMessages[0].text = '¡Hola! Tu API Key está configurada correctamente. ¿En qué te puedo ayudar sobre la malla curricular?';
+        } else {
+            // Sugerir configuración si no hay key
+            setTimeout(() => { this.showApiModal = true; }, 2000);
+        }
+    },
+    watch: {
+        // Auto-guardado en LocalStorage
+        data: {
+            handler(newData) {
+                localStorage.setItem('cubik_ia_data_v2', JSON.stringify(newData));
+            },
+            deep: true
+        }
+    },
+    methods: {
+        // --- MANEJO DE SEGURIDAD API KEY ---
+        saveApiKey() {
+            if (this.tempApiKey.trim() === '') return;
+            this.apiKey = this.tempApiKey.trim();
+            localStorage.setItem('cubik_gemini_key', this.apiKey);
+            this.showApiModal = false;
+            if(this.chatMessages.length === 1) {
+               this.chatMessages[0].text = '¡Hola! Tu API Key se configuró correctamente. ¿En qué te puedo ayudar?';
+            }
+        },
+        clearApiKey() {
+            this.apiKey = '';
+            this.tempApiKey = '';
+            localStorage.removeItem('cubik_gemini_key');
+            this.showApiModal = false;
+            alert("API Key borrada correctamente de tu navegador.");
+        },
+
+        toggleEditMode() {
+            this.editMode = !this.editMode;
+        },
+        scrollCarousel(mIndex, dir) {
+            const container = document.getElementById('carousel-' + mIndex);
+            if (container) {
+                const scrollAmount = container.clientWidth / 1.5;
+                container.scrollBy({ left: scrollAmount * dir, behavior: 'smooth' });
+            }
+        },
+        
+        // --- MANEJO DEL CHATBOT ---
+        async handleSendMessage() {
+            if (!this.chatInput.trim() || this.isChatLoading) return;
+            
+            // Verificación de Seguridad API
+            if (!this.apiKey) {
+                this.showApiModal = true;
+                return;
+            }
+
+            const userText = this.chatInput;
+            this.chatMessages.push({ role: 'user', text: userText });
+            this.chatInput = '';
+            this.isChatLoading = true;
+            
+            this.scrollToBottom();
+
+            try {
+                const systemContext = `Eres el asistente virtual de la plataforma educativa CUBI-K IA. Eres experto en la siguiente malla curricular: ${JSON.stringify(this.data)}. Responde de forma amable, fomenta el desarrollo TI y sé conciso en tus respuestas.`;
+                const historyForApi = this.chatMessages.slice(0, -1);
+                
+                // Usamos la API key que está en memoria
+                const responseText = await callGeminiAPI(this.apiKey, userText, systemContext, historyForApi, false);
+                this.chatMessages.push({ role: 'model', text: responseText });
+            } catch (error) {
+                console.error(error);
+                this.chatMessages.push({ role: 'model', text: "Lo siento, tuve un problema al conectarme (verifica que tu API Key sea válida)." });
+            } finally {
+                this.isChatLoading = false;
+                this.scrollToBottom();
+            }
+        },
+        scrollToBottom() {
+            setTimeout(() => {
+                const container = document.getElementById('chat-container');
+                if (container) container.scrollTop = container.scrollHeight;
+            }, 100);
+        },
+
+        // --- SISTEMA CRUD ---
+        openModal(type, payload = null) {
+            this.modal = { isOpen: true, type, payload };
+            
+            if (type === 'editGlobal') {
+                this.formData = { programTitle: this.data.programTitle, vision: this.data.vision };
+            } else if (type === 'editModule') {
+                this.formData = { title: payload.title };
+            } else if (type === 'editClass') {
+                this.formData = { ...payload.cls };
+            } else if (type === 'addClass') {
+                this.formData = { code: 'CLS-XXX', title: '', desc: '', image: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&w=600&q=80' };
+            } else if (type === 'addModule') {
+                this.formData = { title: '' };
+            } else if (type === 'editWorkshop') {
+                this.formData = { ...payload.ws };
+            } else if (type === 'addWorkshop') {
+                this.formData = { code: 'WS-XXX', title: '', desc: '' };
+            } else if (type === 'addTask') {
+                this.formData = { studentName: '', taskCode: 'CLS-001', link: 'https://', grade: '1.0', status: 'Enviado' };
+            }
+        },
+        closeModal() {
+            this.modal = { isOpen: false, type: '', payload: null };
+            this.formData = {};
+        },
+        saveModalData() {
+            const { type, payload } = this.modal;
+            
+            if (type === 'editGlobal') {
+                this.data.programTitle = this.formData.programTitle;
+                this.data.vision = this.formData.vision;
+            } else if (type === 'editModule') {
+                this.data.modules[payload.mIndex].title = this.formData.title;
+            } else if (type === 'editClass') {
+                Object.assign(this.data.modules[payload.mIndex].classes[payload.cIndex], this.formData);
+            } else if (type === 'addClass') {
+                this.data.modules[payload.mIndex].classes.push({ id: Date.now().toString(), ...this.formData });
+            } else if (type === 'addModule') {
+                this.data.modules.push({ id: Date.now().toString(), title: this.formData.title, classes: [] });
+            } else if (type === 'editWorkshop') {
+                Object.assign(this.data.workshops[payload.wIndex], this.formData);
+            } else if (type === 'addWorkshop') {
+                this.data.workshops.push({ id: Date.now().toString(), ...this.formData });
+            } else if (type === 'addTask') {
+                this.data.studentTasks.push({ id: Date.now().toString(), ...this.formData });
+            }
+            
+            this.closeModal();
+        },
+        deleteModule(mIndex) {
+            if(confirm(`¿Eliminar el módulo completo?`)) this.data.modules.splice(mIndex, 1);
+        },
+        deleteClass(mIndex, cIndex) {
+            if(confirm('¿Eliminar esta clase?')) this.data.modules[mIndex].classes.splice(cIndex, 1);
+        },
+        deleteWorkshop(wIndex) {
+            if(confirm('¿Eliminar taller?')) this.data.workshops.splice(wIndex, 1);
+        },
+        deleteTask(idx) {
+            if(confirm('¿Eliminar entrega?')) this.data.studentTasks.splice(idx, 1);
+        },
+
+        // --- GENERACIÓN CON IA EN MODAL ---
+        async handleAIGenerate() {
+            if (!this.apiKey) {
+                this.closeModal();
+                this.showApiModal = true;
+                return;
+            }
+
+            this.isGenerating = true;
+            try {
+                const prompt = `Actúa como un arquitecto de cursos de TI e IA. Genera un título creativo y una descripción concisa (máximo 2 líneas) para una nueva clase o taller en un programa de Inteligencia Artificial Corporativa. Devuelve la respuesta estrictamente en JSON usando este formato exacto: {"title": "Título sugerido", "desc": "Descripción detallada"}`;
+                
+                const jsonText = await callGeminiAPI(this.apiKey, prompt, "", [], true);
+                const aiData = JSON.parse(jsonText);
+                
+                this.formData.title = aiData.title || this.formData.title;
+                this.formData.desc = aiData.desc || this.formData.desc;
+            } catch (error) {
+                console.error("Error generating with AI", error);
+                alert("Hubo un error (verifique que su API key sea correcta).");
+            } finally {
+                this.isGenerating = false;
+            }
+        }
+    }
+}).mount('#app');
+</script>
+</body>
+</html>
